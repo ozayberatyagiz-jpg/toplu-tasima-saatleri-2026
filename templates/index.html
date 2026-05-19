@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RouteX</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+html{scroll-behavior:smooth}
+body{background:#f5f7fb;color:#111}
+header{height:75px;background:white;display:flex;align-items:center;justify-content:space-between;padding:0 45px;position:sticky;top:0;z-index:99;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.logo img{height:55px;border-radius:12px}
+nav a{margin-left:22px;color:#444;text-decoration:none;font-weight:600;cursor:pointer}
+.hero{text-align:center;padding:85px 20px}
+.badge{display:inline-block;background:#eef2ff;color:#1746ff;padding:10px 18px;border-radius:25px;font-weight:700;margin-bottom:22px}
+h1{font-size:58px;margin-bottom:15px}
+.hero p{font-size:20px;color:#666;margin-bottom:35px}
+.search-box,.box,.trip,.ticket{background:white;border-radius:28px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,.08);max-width:1050px;margin:auto}
+.search-box{display:flex;gap:15px;justify-content:center;flex-wrap:wrap}
+input,button{padding:16px;border-radius:16px;border:1px solid #ddd;font-size:16px}
+button{background:#1746ff;color:white;border:none;font-weight:700;cursor:pointer}
+button:hover{opacity:.9}
+.section{display:none;max-width:1050px;margin:35px auto}
+.trip{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:20px}
+.bus-card{width:145px;height:85px;border-radius:22px;background:linear-gradient(135deg,#0d1b3d,#1746ff);display:flex;align-items:center;justify-content:center;color:white;font-size:42px}
+.firma{font-size:23px;font-weight:800}
+.detail{color:#666;margin-top:6px}
+.price{font-size:30px;color:#1746ff;font-weight:900}
+#map{height:420px;border-radius:22px;overflow:hidden}
+.bus-box{width:350px;margin:25px auto;border:2px solid #ddd;border-radius:28px;padding:25px}
+.driver{background:#111;color:white;text-align:center;padding:13px;border-radius:16px;margin-bottom:20px;font-weight:700}
+.seats{display:grid;grid-template-columns:70px 70px 35px 70px;gap:14px;justify-content:center}
+.seat{height:60px;border:2px solid #ddd;border-radius:16px;display:flex;align-items:center;justify-content:center;background:white;cursor:pointer;font-weight:700}
+.seat.selected{background:#1746ff;color:white;border-color:#1746ff}
+.seat.full{background:#ff3b30;color:white;border-color:#ff3b30;cursor:not-allowed}
+.popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center}
+.popup-box{background:white;border-radius:26px;padding:35px;text-align:center;width:400px}
+footer{text-align:center;padding:40px;color:#777}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo"><img src="/static/logo.png" alt="RouteX"></div>
+<nav>
+<a onclick="window.scrollTo(0,0)">Ana Sayfa</a>
+<a onclick="biletleriYukle()">Biletlerim</a>
+<a onclick="adminAc()">Admin</a>
+<a onclick="alert('Giriş işlemi başarılı ✅')">Giriş Yap</a>
+<a onclick="alert('Kayıt işlemi başarılı ✅')">Kayıt Ol</a>
+</nav>
+</header>
+
+<section class="hero">
+<div class="badge">Türkiye geneli otobüs bileti sistemi</div>
+<h1>Yolculuğunu kolayca planla.</h1>
+<p>Sefer ara, koltuk seç, ödeme yap ve PNR kodunu oluştur.</p>
+
+<div class="search-box">
+<input id="nereden" list="iller" placeholder="Nereden?">
+<input id="nereye" list="iller" placeholder="Nereye?">
+<input id="tarih" type="date">
+<button onclick="seferAra()">Sefer Ara</button>
+</div>
+    <div id="sonuclar"></div>
+</section>
+
+<datalist id="iller">
+<option>Ankara</option><option>İstanbul</option><option>İzmir</option><option>Bursa</option>
+<option>Antalya</option><option>Trabzon</option><option>Samsun</option><option>Adana</option>
+<option>Gaziantep</option><option>Eskişehir</option><option>Konya</option><option>Aydın</option><option>Muğla</option>
+</datalist>
+
+<section class="section" id="results"></section>
+
+<section class="section" id="mapArea">
+<div class="box">
+<h2 style="text-align:center;margin-bottom:20px">Rota Haritası</h2>
+<div id="map"></div>
+</div>
+</section>
+
+<section class="section" id="seatArea"></section>
+
+<section class="section" id="paymentArea">
+<div class="box" style="text-align:center">
+<h2>Ödeme Bilgileri</h2><br>
+<input id="kartAd" placeholder="Kart Üzerindeki İsim">
+<input id="kartNo" placeholder="Kart Numarası">
+<input id="sonKullanma" placeholder="AA/YY">
+<input id="cvv" placeholder="CVV">
+<br><br>
+<button onclick="odemeyiTamamla()">Ödemeyi Tamamla</button>
+</div>
+</section>
+
+<section class="section" id="biletlerim"></section>
+
+<section class="section" id="adminPanel">
+<div class="box">
+<h2>Admin Paneli</h2><br>
+<div id="adminOzet">Henüz veri yok.</div>
+</div>
+</section>
+
+<div class="popup" id="popup">
+<div class="popup-box">
+<h2>Ödeme Başarılı ✅</h2><br>
+<p id="popupText"></p><br>
+<button onclick="popupKapat()">Tamam</button>
+</div>
+</div>
+
+<footer>©️ 2026 RouteX — Güvenli ödeme • Koltuk seçimi • PNR sorgulama</footer>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map = null;
+let rotaCizgisi = null;
+let aktifSeferler = [];
+let secilenFirma = "";
+let secilenRota = "";
+let secilenTarih = "";
+let secilenFiyat = "";
+let secilenKoltuk = "";
+function koltukSec(koltukNo) {
+    secilenKoltuk = koltukNo;
+    alert("Seçilen koltuk: " + koltukNo);
+}
+const sehirler = {
+"Ankara":[39.93,32.85],
+"İstanbul":[41.00,28.97],
+"İzmir":[38.42,27.14],
+"Bursa":[40.18,29.06],
+"Antalya":[36.88,30.70],
+"Trabzon":[41.00,39.72],
+"Samsun":[41.29,36.33],
+"Adana":[37.00,35.32],
+"Gaziantep":[37.06,37.38],
+"Eskişehir":[39.77,30.52],
+"Konya":[37.87,32.48],
+"Aydın":[37.84,27.84],
+"Muğla":[37.21,28.36]
+};
+
+const firmalar = [
+["Kamil Koç","23:30","2+1","Wi-Fi • USB • TV",1139],
+["Metro Turizm","00:15","2+1","Wi-Fi • Klima",1200],
+["Pamukkale Turizm","01:00","2+1","TV • USB • İkram",1140],
+["Varan Turizm","22:00","2+1","Wi-Fi • Konfor",1100],
+["Ali Osman Ulusoy","20:45","2+1","USB • TV",1100],
+["Kale Seyahat","23:59","2+1","Wi-Fi • Klima",1050],
+["Süha Turizm","20:30","2+1","TV • USB",700],
+["Isparta Petrol Turizm","23:59","2+1","Wi-Fi • USB",800],
+["Yeni Aksaray Seyahat","14:30","2+1","Wi-Fi • USB",629],
+["Can Diyarbakır Turizm","01:25","2+1","Klima • TV",750]
+];
+
+function seferAra(){
+let nereden = document.getElementById("nereden").value.trim();
+let nereye = document.getElementById("nereye").value.trim();
+let tarih = document.getElementById("tarih").value;
+
+if(!nereden || !nereye || !tarih){
+alert("Lütfen tüm alanları doldur.");
+return;
+}
+
+if(!sehirler[nereden] || !sehirler[nereye]){
+alert("Lütfen şehirleri listeden seç.");
+return;
+}
+
+if(nereden.toLowerCase() === nereye.toLowerCase()){
+alert("Kalkış ve varış aynı olamaz.");
+return;
+}
+
+let rota = nereden + " ➜ " + nereye;
+
+aktifSeferler = firmalar.map(function(f){
+return {
+firma:f[0],
+saat:f[1],
+duzen:f[2],
+ozellik:f[3],
+fiyat:f[4] + Math.floor(Math.random()*80),
+rota:rota,
+tarih:tarih
+};
+});
+
+let html = "<h2 style='margin-bottom:20px'>Uygun Seferler</h2>";
+
+aktifSeferler.forEach(function(s,i){
+html += `
+<div class="trip">
+<div class="bus-card">🚌</div>
+<div style="flex:1">
+<div class="firma">${s.firma}</div>
+<div class="detail">${s.rota}</div>
+<div class="detail">Saat: ${s.saat} • ${s.duzen} • ${s.ozellik}</div>
+</div>
+<div>
+<div class="price">₺${s.fiyat}</div><br>
+<button onclick="koltukSec(${i})">Koltuk Seç</button>
+</div>
+</div>`;
+});
+
+document.getElementById("results").innerHTML = html;
+document.getElementById("results").style.display = "block";
+
+haritaGoster(nereden,nereye);
+
+setTimeout(function(){
+document.getElementById("results").scrollIntoView({behavior:"smooth"});
+},200);
+}
+
+function haritaGoster(nereden,nereye){
+document.getElementById("mapArea").style.display = "block";
+
+if(typeof L === "undefined"){
+return;
+}
+
+setTimeout(function(){
+if(!map){
+map = L.map("map").setView([39,35],6);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+attribution:"RouteX"
+}).addTo(map);
+}
+
+let baslangic = sehirler[nereden];
+let bitis = sehirler[nereye];
+
+if(rotaCizgisi){
+map.removeLayer(rotaCizgisi);
+}
+
+rotaCizgisi = L.polyline([baslangic,bitis],{
+color:"#1746ff",
+weight:5
+}).addTo(map);
+
+L.marker(baslangic).addTo(map).bindPopup(nereden);
+L.marker(bitis).addTo(map).bindPopup(nereye);
+
+map.fitBounds(rotaCizgisi.getBounds());
+map.invalidateSize();
+},300);
+}
+
+function koltukSec(index){
+let s = aktifSeferler[index];
+
+secilenFirma = s.firma;
+secilenRota = s.rota;
+secilenTarih = s.tarih;
+secilenFiyat = s.fiyat;
+secilenKoltuk = "";
+
+let html = `
+<div class="box" style="text-align:center">
+<h2>Koltuk Seçimi</h2>
+<p>${s.firma} • ${s.rota}</p>
+<div class="bus-box">
+<div class="driver">🚌 Şoför</div>
+<div class="seats">`;
+
+for(let i=1;i<=12;i++){
+let dolu = [1,4,8,12].includes(i);
+html += `
+<div class="seat ${dolu ? "full" : ""}" onclick="${dolu ? "" : "koltukTikla(this,"+i+")"}">${i}</div>`;
+}
+
+html += `
+</div>
+</div>
+<p>Kırmızı koltuklar doludur.</p><br>
+<button onclick="odemeEkraniAc()">Ödemeye Geç</button>
+</div>`;
+
+document.getElementById("seatArea").innerHTML = html;
+document.getElementById("seatArea").style.display = "block";
+document.getElementById("seatArea").scrollIntoView({behavior:"smooth"});
+}
+
+function koltukTikla(el,no){
+document.querySelectorAll(".seat").forEach(function(s){
+s.classList.remove("selected");
+});
+el.classList.add("selected");
+secilenKoltuk = no;
+}
+
+function odemeEkraniAc(){
+if(!secilenKoltuk){
+alert("Lütfen koltuk seç.");
+return;
+}
+document.getElementById("paymentArea").style.display = "block";
+document.getElementById("paymentArea").scrollIntoView({behavior:"smooth"});
+}
+
+async function odemeyiTamamla(){
+let kartAd = document.getElementById("kartAd").value;
+let kartNo = document.getElementById("kartNo").value;
+let sonKullanma = document.getElementById("sonKullanma").value;
+let cvv = document.getElementById("cvv").value;
+
+if(!kartAd || !kartNo || !sonKullanma || !cvv){
+alert("Lütfen ödeme bilgilerini doldur.");
+return;
+}
+
+let pnr = "RTX" + Math.floor(Math.random()*90000+10000);
+
+try{
+await fetch("/bilet-kaydet?firma="+encodeURIComponent(secilenFirma)+
+"&rota="+encodeURIComponent(secilenRota)+
+"&tarih="+encodeURIComponent(secilenTarih)+
+"&koltuk="+encodeURIComponent(secilenKoltuk)+
+"&fiyat="+encodeURIComponent(secilenFiyat)+
+"&pnr="+encodeURIComponent(pnr));
+}catch(e){}
+
+document.getElementById("popup").style.display = "flex";
+document.getElementById("popupText").innerHTML =
+secilenFirma + "<br><br>" +
+secilenRota + "<br><br>" +
+"Tarih: " + secilenTarih + "<br>" +
+"Koltuk: " + secilenKoltuk + "<br>" +
+"Tutar: ₺" + secilenFiyat + "<br>" +
+"PNR: <b>" + pnr + "</b>";
+}
+
+function popupKapat(){
+document.getElementById("popup").style.display = "none";
+biletleriYukle();
+}
+
+async function biletleriYukle(){
+let html = "<h2 style='margin-bottom:20px'>Biletlerim</h2>";
+
+try{
+let response = await fetch("/biletler");
+let data = await response.json();
+
+data.biletler.forEach(function(b){
+html += `
+<div class="ticket">
+<h2>${b.firma}</h2>
+<p>${b.rota}</p>
+<p>Tarih: ${b.tarih}</p>
+<p>Koltuk: ${b.koltuk}</p>
+<p>PNR: ${b.pnr}</p>
+<p>₺${b.fiyat}</p>
+</div>`;
+});
+
+let toplam = data.biletler.reduce(function(a,b){
+return a + Number(b.fiyat);
+},0);
+
+document.getElementById("adminOzet").innerHTML =
+"Toplam Bilet: " + data.biletler.length + "<br>Toplam Gelir: ₺" + toplam;
+
+}catch(e){
+html += "<p>Henüz kayıtlı bilet yok.</p>";
+}
+
+document.getElementById("biletlerim").innerHTML = html;
+document.getElementById("biletlerim").style.display = "block";
+document.getElementById("biletlerim").scrollIntoView({behavior:"smooth"});
+}
+
+function adminAc(){
+document.getElementById("adminPanel").style.display = "block";
+biletleriYukle();
+setTimeout(function(){
+document.getElementById("adminPanel").scrollIntoView({behavior:"smooth"});
+},300);
+}
+</script>
+
+</body>
+</html>

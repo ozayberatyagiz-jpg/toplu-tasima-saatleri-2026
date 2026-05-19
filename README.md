@@ -1,21 +1,48 @@
-# Toplu Taşıma Saatleri Uygulaması
+# RouteX Otobüs Bilet Sistemi
 
-## Proje Amacı
-Bu proje kullanıcıların toplu taşıma sefer saatlerini görüntüleyebilmesi ve yeni sefer ekleyebilmesi için geliştirilmiştir.
+## Proje Hakkında
+Bu proje Python FastAPI kullanılarak geliştirilmiş modern bir otobüs bileti rezervasyon sistemidir.
+
+Kullanıcılar:
+•⁠  ⁠Sefer arayabilir
+•⁠  ⁠Koltuk seçebilir
+•⁠  ⁠Bilet oluşturabilir
+•⁠  ⁠PNR kodu alabilir
+•⁠  ⁠Biletlerini görüntüleyebilir
+
+Admin panelinde:
+•⁠  ⁠Toplam bilet sayısı
+•⁠  ⁠Toplam gelir
+•⁠  ⁠Sefer bilgileri görüntülenebilir
+
+---
 
 ## Kullanılan Teknolojiler
-- HTML
-- CSS
-- JavaScript
+
+•⁠  ⁠Python
+•⁠  ⁠FastAPI
+•⁠  ⁠HTML
+•⁠  ⁠CSS
+•⁠  ⁠JavaScript
+•⁠  ⁠SQLite
+
+---
 
 ## Özellikler
-- Sefer ekleme
-- Saat görüntüleme
-- Kullanıcı dostu arayüz
 
-## Projeyi Çalıştırma
-1. src klasörü içindeki index.html dosyasını açın
-2. Tarayıcı üzerinden uygulamayı çalıştırın
+•⁠  ⁠Sefer arama sistemi
+•⁠  ⁠Koltuk seçim sistemi
+•⁠  ⁠PNR oluşturma
+•⁠  ⁠Bilet kayıt sistemi
+•⁠  ⁠Bilet listeleme
+•⁠  ⁠Admin özeti
+•⁠  ⁠Modern kullanıcı arayüzü
 
-## Geliştirici
-Berat Yağız Özay
+---
+
+## Kurulum
+
+Terminal üzerinden:
+
+```bash
+pip install fastapi uvicorn

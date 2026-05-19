@@ -78,3 +78,50 @@ function seferEkle() {
     document.getElementById("sehir").value = "";
     document.getElementById("saat").value = "";
 }
+const firmalar = [
+    "Pamukkale Turizm",
+    "Metro Turizm",
+    "Kamil Koç",
+    "Anadolu Star",
+    "RouteX Express"
+];
+
+function rastgeleFiyat() {
+    return Math.floor(Math.random() * 1000) + 350;
+}
+
+function seferAra() {
+
+    const nereden = document.getElementById("nereden").value;
+    const nereye = document.getElementById("nereye").value;
+    const tarih = document.getElementById("tarih").value;
+
+    const sonucDiv = document.getElementById("sonuclar");
+
+    sonucDiv.innerHTML = "";
+
+    for(let i = 0; i < 5; i++) {
+
+        const firma = firmalar[i];
+        const fiyat = rastgeleFiyat();
+
+        sonucDiv.innerHTML += `
+            <div class="sefer-kart">
+                <h3>${firma}</h3>
+
+                <p>${nereden} → ${nereye}</p>
+
+                <p>Tarih: ${tarih}</p>
+
+                <p>Fiyat: ₺${fiyat}</p>
+
+                <button onclick="
+                    window.location.href=
+                    '/kaydet?firma=${firma}&rota=${nereden}-${nereye}&tarih=${tarih}&koltuk=${i+1}&fiyat=${fiyat}'
+                ">
+                    Bilet Al
+                </button>
+            </div>
+        `;
+    }
+}
